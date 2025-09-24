@@ -1,0 +1,34 @@
+# Node.js dependencies
+node_modules/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Build output
+dist/
+build/
+
+# IDE settings
+.vscode/
+.idea/
+
+# Python virtual environment
+venv/
+
+# Environment variables
+.env
+.env.local
+
+# Railway deployment files
+.railway/
+
+# Miscellaneous
+*.log
+*.tmp
+*.swp
