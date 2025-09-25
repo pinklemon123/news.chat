@@ -5,4 +5,5 @@ apscheduler
 readability-lxml
 
 openai
+requests
 

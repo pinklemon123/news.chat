@@ -5,6 +5,7 @@ from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
 import os
 import openai
+import requests
 
 app = FastAPI()
 app.add_middleware(
@@ -23,13 +24,31 @@ class NewsPost(BaseModel):
 def health():
     return {"ok": True}
 
+NEWS_SOURCES = [
+    "https://feeds.bbci.co.uk/news/world/rss.xml",  # BBC World News
+    "http://rss.cnn.com/rss/edition_world.rss",    # CNN World News
+    "https://www.reuters.com/rssFeed/topNews",    # Reuters Top News
+    "https://www.scmp.com/rss/91/feed"             # South China Morning Post
+]
+
 @app.get("/search")
-def search_news(query: str = None):
-    # Return default news if no query is provided
-    if not query:
-        return {"results": ["Default News 1", "Default News 2", "Default News 3"]}
-    # Placeholder for actual search logic
-    return {"query": query, "results": [f"News related to {query}"]}
+def search_news(page: int = 1, page_size: int = 5):
+    news_items = []
+    for source in NEWS_SOURCES:
+        try:
+            response = requests.get(source)
+            response.raise_for_status()
+            # Parse RSS feed (simplified for demonstration)
+            news_items.append(f"News from {source}")
+        except Exception as e:
+            news_items.append(f"Error fetching from {source}: {str(e)}")
+
+    # Paginate results
+    start = (page - 1) * page_size
+    end = start + page_size
+    paginated_news = news_items[start:end]
+
+    return {"page": page, "page_size": page_size, "results": paginated_news}
 
 AI_API_KEY = os.getenv("OPENAI_API_KEY")
 openai.api_key = AI_API_KEY
@@ -43,12 +62,14 @@ def generate_post(news: NewsPost = None):
         return {"error": "AI API key not configured"}
 
     try:
-        response = openai.Completion.create(
-            engine="text-davinci-003",
-            prompt=f"Generate a news summary based on the following content:\n{news.content}",
-            max_tokens=100
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": "You are a helpful assistant that summarizes news."},
+                {"role": "user", "content": f"Generate a news summary based on the following content:\n{news.content}"}
+            ]
         )
-        generated_content = response.choices[0].text.strip()
+        generated_content = response['choices'][0]['message']['content'].strip()
         return {"title": news.title, "content": generated_content}
     except Exception as e:
         return {"error": str(e)}
