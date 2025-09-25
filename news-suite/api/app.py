@@ -6,6 +6,7 @@ from pydantic import BaseModel
 import os
 import openai
 import requests
+import feedparser
 
 app = FastAPI()
 app.add_middleware(
@@ -27,50 +28,40 @@ def health():
 NEWS_SOURCES = [
     "https://feeds.bbci.co.uk/news/world/rss.xml",  # BBC World News
     "http://rss.cnn.com/rss/edition_world.rss",    # CNN World News
-    "https://www.reuters.com/rssFeed/topNews",    # Reuters Top News
     "https://www.scmp.com/rss/91/feed"             # South China Morning Post
 ]
 
 @app.get("/search")
-def search_news(page: int = 1, page_size: int = 5):
+def search_news():
     news_items = []
     for source in NEWS_SOURCES:
         try:
-            response = requests.get(source)
-            response.raise_for_status()
-            # Parse RSS feed (simplified for demonstration)
-            news_items.append(f"News from {source}")
+            feed = feedparser.parse(source)
+            for entry in feed.entries[:5]:  # Limit to 5 entries per source
+                news_items.append({"title": entry.title, "link": entry.link})
         except Exception as e:
-            news_items.append(f"Error fetching from {source}: {str(e)}")
+            news_items.append({"error": f"Error fetching from {source}: {str(e)}"})
 
-    # Paginate results
-    start = (page - 1) * page_size
-    end = start + page_size
-    paginated_news = news_items[start:end]
-
-    return {"page": page, "page_size": page_size, "results": paginated_news}
+    return {"results": news_items}
 
 AI_API_KEY = os.getenv("OPENAI_API_KEY")
 openai.api_key = AI_API_KEY
 
 @app.post("/generate")
-def generate_post(news: NewsPost = None):
-    if not news:
-        # Use default content if no input is provided
-        news = NewsPost(title="Default Title", content="Default Content")
+def generate_summary():
     if not AI_API_KEY:
         return {"error": "AI API key not configured"}
 
     try:
         response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
+            model="gpt-4",
             messages=[
                 {"role": "system", "content": "You are a helpful assistant that summarizes news."},
-                {"role": "user", "content": f"Generate a news summary based on the following content:\n{news.content}"}
+                {"role": "user", "content": "Summarize the latest news from BBC, CNN, and SCMP."}
             ]
         )
         generated_content = response['choices'][0]['message']['content'].strip()
-        return {"title": news.title, "content": generated_content}
+        return {"summary": generated_content}
     except Exception as e:
         return {"error": str(e)}
 

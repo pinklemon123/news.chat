@@ -7,3 +7,5 @@ readability-lxml
 openai
 requests
 
+feedparser
+
