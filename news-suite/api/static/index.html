@@ -43,6 +43,24 @@
             bottom: 0;
             width: 100%;
         }
+        #news-list {
+            list-style-type: none;
+            padding: 0;
+        }
+        #news-list li {
+            background: #fff;
+            margin: 0.5rem 0;
+            padding: 1rem;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        #summary {
+            background: #fff;
+            padding: 1rem;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            margin: 1rem 0;
+        }
     </style>
 </head>
 <body>
@@ -55,6 +73,18 @@
             <button onclick="searchNews()">Search News</button>
             <button onclick="generateSummary()">Generate Summary</button>
         </div>
+
+        <h2>News Results</h2>
+        <ul id="news-list">
+            <!-- News items will be dynamically added here -->
+        </ul>
+
+        <h2>AI-Generated Summary</h2>
+        <div id="summary">
+            <!-- Generated summary will be displayed here -->
+        </div>
+
+        <button onclick="loadNews()">Load News</button>
     </main>
     <footer>
         <p>&copy; 2025 News API</p>
@@ -80,11 +110,24 @@
                 body: JSON.stringify({ title, content })
             });
             const data = await response.json();
+            const summaryDiv = document.getElementById('summary');
             if (data.error) {
-                alert('Error: ' + data.error);
+                summaryDiv.textContent = 'Error: ' + data.error;
             } else {
-                alert('Generated Summary: ' + data.content);
+                summaryDiv.textContent = data.content;
             }
+        }
+
+        async function loadNews() {
+            const response = await fetch('/search');
+            const data = await response.json();
+            const newsList = document.getElementById('news-list');
+            newsList.innerHTML = '';
+            data.results.forEach(news => {
+                const li = document.createElement('li');
+                li.textContent = news;
+                newsList.appendChild(li);
+            });
         }
     </script>
 </body>

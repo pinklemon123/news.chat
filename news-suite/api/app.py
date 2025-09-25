@@ -24,15 +24,21 @@ def health():
     return {"ok": True}
 
 @app.get("/search")
-def search_news(query: str):
-    # Placeholder for news search logic
-    return {"query": query, "results": ["News 1", "News 2"]}
+def search_news(query: str = None):
+    # Return default news if no query is provided
+    if not query:
+        return {"results": ["Default News 1", "Default News 2", "Default News 3"]}
+    # Placeholder for actual search logic
+    return {"query": query, "results": [f"News related to {query}"]}
 
 AI_API_KEY = os.getenv("OPENAI_API_KEY")
 openai.api_key = AI_API_KEY
 
 @app.post("/generate")
-def generate_post(news: NewsPost):
+def generate_post(news: NewsPost = None):
+    if not news:
+        # Use default content if no input is provided
+        news = NewsPost(title="Default Title", content="Default Content")
     if not AI_API_KEY:
         return {"error": "AI API key not configured"}
 
