@@ -3,6 +3,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from shared.supabase_client import supabase
 from shared.redis_client import redis_client
 from worker.pipeline import enqueue_crawl
+from pydantic import BaseModel
+from typing import List
 import os
 
 app = FastAPI()
@@ -12,18 +14,23 @@ app.add_middleware(
     allow_credentials=True, allow_methods=["*"], allow_headers=["*"],
 )
 
+class NewsPost(BaseModel):
+    title: str
+    content: str
+
 @app.get("/health")
 def health():
     return {"ok": True}
 
-# 修改 list_articles 方法，支持关键词筛选，语言固定为中文
-@app.get("/articles")
-def list_articles(q: str | None = None, limit: int = 20, cursor: int | None = None):
-    """
-    查询新闻文章，支持关键词筛选，语言固定为中文。
-    """
-    # TODO: 从 Supabase 查询文章，按关键词筛选
-    return {"items": [], "nextCursor": None}
+@app.get("/search")
+def search_news(query: str):
+    # Placeholder for news search logic
+    return {"query": query, "results": ["News 1", "News 2"]}
+
+@app.post("/generate")
+def generate_post(news: NewsPost):
+    # Placeholder for AI-generated post logic
+    return {"title": news.title, "content": f"Generated content based on: {news.content}"}
 
 @app.post("/trigger-crawl")
 async def trigger_crawl(req: Request):
