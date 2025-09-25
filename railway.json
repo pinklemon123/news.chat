@@ -1,0 +1,5 @@
+{
+  "build": {
+    "command": "./start.sh"
+  }
+}
