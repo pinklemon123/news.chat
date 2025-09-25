@@ -32,3 +32,4 @@ venv/
 *.log
 *.tmp
 *.swp
+!news-suite/api/
