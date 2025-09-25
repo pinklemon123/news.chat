@@ -2,10 +2,16 @@
 #!/bin/bash
 set -euo pipefail
 
+# 启动后端服务
 PORT="${PORT:-8000}"
+if [ -d "api" ]; then
+  cd api
+  uvicorn app:app --host 0.0.0.0 --port "$PORT" &
+  cd ..
+fi
 
-# 如果存在 api 目录就进入，否则留在当前目录
-[ -d "api" ] && cd api
-
-# 这里的 app:app 改成你的实际模块与应用对象
-exec uvicorn app:app --host 0.0.0.0 --port "$PORT"
+# 启动前端服务
+if [ -d "web" ]; then
+  cd web
+  npm run start
+fi
