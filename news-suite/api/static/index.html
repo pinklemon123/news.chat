@@ -60,12 +60,31 @@
         <p>&copy; 2025 News API</p>
     </footer>
     <script>
-        function searchNews() {
-            alert('Search News functionality coming soon!');
+        async function searchNews() {
+            const query = prompt('Enter your search query:');
+            if (!query) return;
+
+            const response = await fetch('/search?query=' + encodeURIComponent(query));
+            const data = await response.json();
+            alert('Search Results: ' + data.results.join(', '));
         }
 
-        function generateSummary() {
-            alert('Generate Summary functionality coming soon!');
+        async function generateSummary() {
+            const title = prompt('Enter the news title:');
+            const content = prompt('Enter the news content:');
+            if (!title || !content) return;
+
+            const response = await fetch('/generate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ title, content })
+            });
+            const data = await response.json();
+            if (data.error) {
+                alert('Error: ' + data.error);
+            } else {
+                alert('Generated Summary: ' + data.content);
+            }
         }
     </script>
 </body>

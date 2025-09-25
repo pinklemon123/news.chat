@@ -4,3 +4,5 @@ uvicorn
 apscheduler
 readability-lxml
 
+openai
+

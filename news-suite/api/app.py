@@ -4,6 +4,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
 import os
+import openai
 
 app = FastAPI()
 app.add_middleware(
@@ -27,10 +28,24 @@ def search_news(query: str):
     # Placeholder for news search logic
     return {"query": query, "results": ["News 1", "News 2"]}
 
+AI_API_KEY = os.getenv("OPENAI_API_KEY")
+openai.api_key = AI_API_KEY
+
 @app.post("/generate")
 def generate_post(news: NewsPost):
-    # Placeholder for AI-generated post logic
-    return {"title": news.title, "content": f"Generated content based on: {news.content}"}
+    if not AI_API_KEY:
+        return {"error": "AI API key not configured"}
+
+    try:
+        response = openai.Completion.create(
+            engine="text-davinci-003",
+            prompt=f"Generate a news summary based on the following content:\n{news.content}",
+            max_tokens=100
+        )
+        generated_content = response.choices[0].text.strip()
+        return {"title": news.title, "content": generated_content}
+    except Exception as e:
+        return {"error": str(e)}
 
 @app.get("/")
 def root():
