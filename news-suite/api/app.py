@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
 import os
 
@@ -32,5 +33,5 @@ def generate_post(news: NewsPost):
     return {"title": news.title, "content": f"Generated content based on: {news.content}"}
 
 @app.get("/")
-def read_root():
-    return {"message": "Welcome to the News API"}
+def root():
+    return RedirectResponse(url="/static/index.html")
