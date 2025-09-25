@@ -4,4 +4,4 @@ apscheduler
 readability-lxml
 stripe
 redis
-supabase-py
+supabase
