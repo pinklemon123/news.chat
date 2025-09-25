@@ -1,10 +1,6 @@
-from fastapi import FastAPI, Request, HTTPException
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from shared.supabase_client import supabase
-from shared.redis_client import redis_client
-from worker.pipeline import enqueue_crawl
 from pydantic import BaseModel
-from typing import List
 import os
 
 app = FastAPI()
@@ -31,14 +27,3 @@ def search_news(query: str):
 def generate_post(news: NewsPost):
     # Placeholder for AI-generated post logic
     return {"title": news.title, "content": f"Generated content based on: {news.content}"}
-
-@app.post("/trigger-crawl")
-async def trigger_crawl(req: Request):
-    body = await req.json()
-    enqueue_crawl(body.get("source_id"))
-    return {"queued": True}
-
-@app.post("/billing/webhook")
-async def billing_webhook(req: Request):
-    # TODO: 验签 Stripe Webhook，更新 subscriptions/profiles.plan
-    return {"received": True}
