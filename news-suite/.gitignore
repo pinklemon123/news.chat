@@ -1,0 +1,21 @@
+# Ignore environment files
+.env
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+
+# Distribution / packaging
+.Python
+build/
+dist/
+*.egg-info/
+*.egg
+
+# Virtual environment
+venv/
+
+# IDE settings
+.vscode/
+.idea/
+*.sublime-workspace
