@@ -8,6 +8,7 @@ import openai
 import requests
 import feedparser
 import logging
+import time
 
 app = FastAPI()
 app.add_middleware(
@@ -62,20 +63,32 @@ def search_news():
         news_items.extend(fetch_news(source))
     return {"results": news_items}
 
+# Helper function to call OpenAI API with retry logic
+def call_openai_with_retry(prompt, retries=3):
+    for attempt in range(retries):
+        try:
+            response = openai.ChatCompletion.create(
+                model="gpt-4",
+                messages=[
+                    {"role": "system", "content": "You are a helpful assistant that summarizes news."},
+                    {"role": "user", "content": prompt}
+                ]
+            )
+            return response['choices'][0]['message']['content'].strip()
+        except openai.error.OpenAIError as e:
+            logger.warning(f"Attempt {attempt + 1} failed: {str(e)}")
+            if attempt < retries - 1:
+                time.sleep(2)  # Wait before retrying
+            else:
+                raise
+
 @app.post("/generate")
 def generate_summary(user_input: NewsPost):
     if not AI_API_KEY:
         return {"error": "AI API key not configured"}
 
     try:
-        response = openai.ChatCompletion.create(
-            model="gpt-4",
-            messages=[
-                {"role": "system", "content": "You are a helpful assistant that summarizes news."},
-                {"role": "user", "content": user_input.content}
-            ]
-        )
-        generated_content = response['choices'][0]['message']['content'].strip()
+        generated_content = call_openai_with_retry(user_input.content)
         return {"summary": generated_content}
     except openai.error.OpenAIError as e:
         logger.error(f"OpenAI API error: {str(e)}")
@@ -83,6 +96,32 @@ def generate_summary(user_input: NewsPost):
     except Exception as e:
         logger.error(f"Unexpected error: {str(e)}")
         return {"error": "An unexpected error occurred."}
+
+# Helper function to fetch and update news
+def fetch_and_update_news(source):
+    try:
+        feed = feedparser.parse(source)
+        news_entries = [
+            {"title": entry.title, "link": entry.link, "summary": entry.summary}
+            for entry in feed.entries[:5]  # Limit to 5 entries per source
+        ]
+        logger.info(f"Fetched {len(news_entries)} entries from {source}")
+        return news_entries
+    except Exception as e:
+        logger.error(f"Error fetching from {source}: {str(e)}")
+        return [{"error": f"Error fetching from {source}: {str(e)}"}]
+
+@app.get("/update-news")
+def update_news():
+    updated_news = []
+    for source in NEWS_SOURCES:
+        updated_news.extend(fetch_and_update_news(source))
+    if updated_news:
+        logger.info("News successfully updated.")
+        return {"status": "success", "updated_news": updated_news}
+    else:
+        logger.warning("No news was updated.")
+        return {"status": "failure", "message": "Failed to update news."}
 
 @app.get("/")
 def root():
