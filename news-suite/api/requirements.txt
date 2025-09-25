@@ -1,7 +1,6 @@
 fastapi
 uvicorn
+
 apscheduler
 readability-lxml
-stripe
-redis
-supabase
+
