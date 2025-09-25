@@ -170,8 +170,19 @@
         }
 
         async function refreshNews() {
-            await loadNews();
-            alert('新闻已更新！');
+            try {
+                const response = await fetch('/update-news');
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    await loadNews(); // Reload the news display
+                    alert(`新闻更新成功！获取了 ${data.articles_count} 条新闻${data.error_count > 0 ? `，${data.error_count} 个源出现错误` : ''}。`);
+                } else {
+                    alert('新闻更新失败：' + data.message);
+                }
+            } catch (error) {
+                alert('新闻更新失败：网络错误');
+            }
         }
 
         // Automatically load news on page load

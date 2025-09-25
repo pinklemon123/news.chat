@@ -93,16 +93,32 @@
     </main>
     <script>
         async function loadSummaries() {
-            const response = await fetch('/generate');
-            const data = await response.json();
-            const summariesContainer = document.getElementById('summaries-container');
-            summariesContainer.innerHTML = '';
-            data.summaries.forEach(summary => {
-                const summaryDiv = document.createElement('div');
-                summaryDiv.className = 'summary';
-                summaryDiv.textContent = summary;
-                summariesContainer.appendChild(summaryDiv);
-            });
+            try {
+                const response = await fetch('/search');
+                const data = await response.json();
+                const summariesContainer = document.getElementById('summaries-container');
+                summariesContainer.innerHTML = '';
+                
+                if (data.results && data.results.length > 0) {
+                    data.results.slice(0, 3).forEach(news => { // Show first 3 news items as summaries
+                        const summaryDiv = document.createElement('div');
+                        summaryDiv.className = 'summary';
+                        summaryDiv.innerHTML = `<h3><a href="${news.link}" target="_blank">${news.title}</a></h3>`;
+                        summariesContainer.appendChild(summaryDiv);
+                    });
+                } else {
+                    const noSummaryDiv = document.createElement('div');
+                    noSummaryDiv.className = 'summary';
+                    noSummaryDiv.textContent = '暂无新闻摘要，请稍后再试。';
+                    summariesContainer.appendChild(noSummaryDiv);
+                }
+            } catch (error) {
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'summary';
+                errorDiv.textContent = '加载摘要失败，请稍后再试。';
+                errorDiv.style.color = 'red';
+                document.getElementById('summaries-container').appendChild(errorDiv);
+            }
         }
 
         async function sendMessage() {
@@ -123,7 +139,7 @@
 
             try {
                 // Call backend for AI response
-                const response = await fetch('/generate', {
+                const response = await fetch('/chat', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -136,6 +152,10 @@
                 }
 
                 const data = await response.json();
+
+                if (data.error) {
+                    throw new Error(data.error);
+                }
 
                 // Display AI response
                 const aiDiv = document.createElement('div');
