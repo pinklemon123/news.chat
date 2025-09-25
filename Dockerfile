@@ -5,11 +5,11 @@ FROM python:3.9-slim
 WORKDIR /app
 
 # Install dependencies
-COPY api/requirements.txt .
+COPY news-suite/api/requirements.txt ./requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy backend code
-COPY api /app
+COPY news-suite/api /app
 
 # Start backend service
 CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000"]
