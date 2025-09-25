@@ -9,47 +9,63 @@
             font-family: Arial, sans-serif;
             margin: 0;
             padding: 0;
-            background-color: #f4f4f9;
+            background-color: #e6f7ff; /* Light blue background */
         }
         header {
-            background-color: #333;
+            background-color: #42a5f5; /* Dark blue */
             color: #fff;
             padding: 10px 20px;
             text-align: center;
+        }
+        nav {
+            background-color: #444;
+            color: #fff;
+            padding: 10px 20px;
+            text-align: center;
+        }
+        nav a {
+            color: #fff;
+            text-decoration: none;
+            margin: 0 10px;
         }
         main {
             padding: 20px;
         }
         .summary {
-            border: 1px solid #ccc;
+            border: 1px solid #99ccff; /* Light blue border */
             border-radius: 5px;
             padding: 15px;
             margin-bottom: 20px;
-            background-color: #fff;
+            background-color: #f0f8ff; /* Alice blue */
         }
         #chat-container {
-            border: 1px solid #ccc;
+            background-color: #f0f8ff; /* Alice blue */
+            border: 1px solid #99ccff; /* Light blue border */
             border-radius: 5px;
-            padding: 10px;
-            background-color: #fff;
+            padding: 15px;
         }
         #chat-box {
+            border: 1px solid #99ccff; /* Light blue border */
+            padding: 10px;
             height: 300px;
             overflow-y: scroll;
-            margin-bottom: 10px;
+            background-color: #ffffff; /* White background */
         }
         #user-input {
-            flex: 1;
             padding: 10px;
-            border: 1px solid #ccc;
+            border: 1px solid #99ccff; /* Light blue border */
             border-radius: 5px;
         }
         button {
             padding: 10px;
-            background-color: #333;
+            background-color: #42a5f5; /* Dark blue */
             color: #fff;
             border: none;
             border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #42a5f5; /* Darker blue */
         }
     </style>
 </head>
@@ -57,6 +73,10 @@
     <header>
         <h1>AI 生成的摘要</h1>
     </header>
+    <nav>
+        <a href="/static/index.html">新闻主页</a>
+        <a href="/static/summaries.html">AI 总结</a>
+    </nav>
     <main>
         <div id="summaries-container">
             <!-- Summaries will be dynamically added here -->
