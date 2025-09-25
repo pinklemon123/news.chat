@@ -1,0 +1,9 @@
+# Ignore unnecessary files and folders
+node_modules
+.env
+__pycache__
+*.pyc
+.DS_Store
+.idea
+.vscode
+*.log
