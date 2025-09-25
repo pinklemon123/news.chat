@@ -121,23 +121,35 @@
             // Clear input
             userInput.value = '';
 
-            // Call backend for AI response
-            const response = await fetch('/generate', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ message: userMessage })
-            });
+            try {
+                // Call backend for AI response
+                const response = await fetch('/generate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ message: userMessage })
+                });
 
-            const data = await response.json();
+                if (!response.ok) {
+                    throw new Error('AI 服务暂时不可用，请稍后再试。');
+                }
 
-            // Display AI response
-            const aiDiv = document.createElement('div');
-            aiDiv.textContent = `AI: ${data.reply}`;
-            aiDiv.style.margin = '5px 0';
-            aiDiv.style.color = 'blue';
-            chatBox.appendChild(aiDiv);
+                const data = await response.json();
+
+                // Display AI response
+                const aiDiv = document.createElement('div');
+                aiDiv.textContent = `AI: ${data.reply || '抱歉，我无法理解您的问题。'}`;
+                aiDiv.style.margin = '5px 0';
+                aiDiv.style.color = 'blue';
+                chatBox.appendChild(aiDiv);
+            } catch (error) {
+                const errorDiv = document.createElement('div');
+                errorDiv.textContent = `错误: ${error.message}`;
+                errorDiv.style.margin = '5px 0';
+                errorDiv.style.color = 'red';
+                chatBox.appendChild(errorDiv);
+            }
 
             // Scroll to bottom
             chatBox.scrollTop = chatBox.scrollHeight;

@@ -125,6 +125,7 @@
         </div>
 
         <button onclick="loadNews()">Load News</button>
+        <button onclick="refreshNews()">更新新闻</button>
     </main>
     <footer>
         <p>&copy; 2025 News API</p>
@@ -143,8 +144,9 @@
                 title.innerHTML = `<a href="${news.link}" target="_blank">${news.title}</a>`;
 
                 const image = document.createElement('img');
-                image.src = "https://via.placeholder.com/300"; // Placeholder image
-                image.alt = news.title;
+                image.src = news.image || "https://via.placeholder.com/300"; // Placeholder image if none provided
+                image.style.width = '100%';
+                image.loading = 'lazy'; // Enable lazy loading
 
                 newsItem.appendChild(image);
                 newsItem.appendChild(title);
@@ -165,6 +167,11 @@
             } else {
                 summaryDiv.textContent = data.summary;
             }
+        }
+
+        async function refreshNews() {
+            await loadNews();
+            alert('新闻已更新！');
         }
 
         // Automatically load news on page load
