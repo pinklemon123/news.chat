@@ -32,4 +32,6 @@ venv/
 *.log
 *.tmp
 *.swp
+# Ensure the api folder is not ignored
 !news-suite/api/
+!news-suite/api/**
