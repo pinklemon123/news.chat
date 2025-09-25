@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Summaries</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f9;
+        }
+        header {
+            background-color: #333;
+            color: #fff;
+            padding: 10px 20px;
+            text-align: center;
+        }
+        main {
+            padding: 20px;
+        }
+        .summary {
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            padding: 15px;
+            margin-bottom: 20px;
+            background-color: #fff;
+        }
+        #chat-container {
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            padding: 10px;
+            background-color: #fff;
+        }
+        #chat-box {
+            height: 300px;
+            overflow-y: scroll;
+            margin-bottom: 10px;
+        }
+        #user-input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        button {
+            padding: 10px;
+            background-color: #333;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>AI 生成的摘要</h1>
+    </header>
+    <main>
+        <div id="summaries-container">
+            <!-- Summaries will be dynamically added here -->
+        </div>
+        <div id="chat-container">
+            <div id="chat-box">
+                <!-- Chat messages will appear here -->
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <input type="text" id="user-input" placeholder="输入您的问题...">
+                <button onclick="sendMessage()">发送</button>
+            </div>
+        </div>
+    </main>
+    <script>
+        async function loadSummaries() {
+            const response = await fetch('/generate');
+            const data = await response.json();
+            const summariesContainer = document.getElementById('summaries-container');
+            summariesContainer.innerHTML = '';
+            data.summaries.forEach(summary => {
+                const summaryDiv = document.createElement('div');
+                summaryDiv.className = 'summary';
+                summaryDiv.textContent = summary;
+                summariesContainer.appendChild(summaryDiv);
+            });
+        }
+
+        async function sendMessage() {
+            const userInput = document.getElementById('user-input');
+            const chatBox = document.getElementById('chat-box');
+            const userMessage = userInput.value;
+
+            if (!userMessage.trim()) return;
+
+            // Display user message
+            const userDiv = document.createElement('div');
+            userDiv.textContent = `用户: ${userMessage}`;
+            userDiv.style.margin = '5px 0';
+            chatBox.appendChild(userDiv);
+
+            // Clear input
+            userInput.value = '';
+
+            // Call backend for AI response
+            const response = await fetch('/generate', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ message: userMessage })
+            });
+
+            const data = await response.json();
+
+            // Display AI response
+            const aiDiv = document.createElement('div');
+            aiDiv.textContent = `AI: ${data.reply}`;
+            aiDiv.style.margin = '5px 0';
+            aiDiv.style.color = 'blue';
+            chatBox.appendChild(aiDiv);
+
+            // Scroll to bottom
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        // Automatically load summaries on page load
+        window.onload = loadSummaries;
+    </script>
+</body>
+</html>
