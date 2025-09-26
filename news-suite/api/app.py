@@ -4,7 +4,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
 import os
-import openai
+from openai import OpenAI
 import requests
 import feedparser
 import logging
@@ -41,10 +41,17 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 AI_API_KEY = os.getenv("OPENAI_API_KEY")
-openai.api_key = AI_API_KEY
 
-# Check environment variables
-if not AI_API_KEY:
+# Initialize OpenAI client
+openai_client = None
+if AI_API_KEY:
+    try:
+        openai_client = OpenAI(api_key=AI_API_KEY)
+        logger.info("OpenAI client initialized successfully.")
+    except Exception as e:
+        logger.error(f"Failed to initialize OpenAI client: {str(e)}")
+        openai_client = None
+else:
     logger.warning("OPENAI_API_KEY is not set. AI features will not work.")
 
 # Helper function to fetch news
@@ -77,17 +84,20 @@ def search_news():
 
 # Helper function to call OpenAI API with retry logic
 def call_openai_with_retry(prompt, retries=3):
+    if not openai_client:
+        raise Exception("OpenAI client not initialized")
+    
     for attempt in range(retries):
         try:
-            response = openai.ChatCompletion.create(
+            response = openai_client.chat.completions.create(
                 model="gpt-4",
                 messages=[
                     {"role": "system", "content": "You are a helpful assistant that summarizes news."},
                     {"role": "user", "content": prompt}
                 ]
             )
-            return response['choices'][0]['message']['content'].strip()
-        except openai.error.OpenAIError as e:
+            return response.choices[0].message.content.strip()
+        except Exception as e:
             logger.warning(f"Attempt {attempt + 1} failed: {str(e)}")
             if attempt < retries - 1:
                 time.sleep(2)  # Wait before retrying
@@ -96,22 +106,19 @@ def call_openai_with_retry(prompt, retries=3):
 
 @app.post("/generate")
 def generate_summary(user_input: NewsPost):
-    if not AI_API_KEY:
+    if not openai_client:
         return {"error": "AI API key not configured"}
 
     try:
         generated_content = call_openai_with_retry(user_input.content)
         return {"summary": generated_content}
-    except openai.error.OpenAIError as e:
+    except Exception as e:
         logger.error(f"OpenAI API error: {str(e)}")
         return {"error": "Failed to generate summary. Please try again later."}
-    except Exception as e:
-        logger.error(f"Unexpected error: {str(e)}")
-        return {"error": "An unexpected error occurred."}
 
 @app.post("/chat")
 def chat_with_ai(chat_input: ChatMessage):
-    if not AI_API_KEY:
+    if not openai_client:
         # Mock AI response for demonstration when API key is not available
         mock_responses = [
             "很抱歉，我是一个模拟AI助手。真实的AI功能需要配置OpenAI API密钥。",
@@ -127,11 +134,8 @@ def chat_with_ai(chat_input: ChatMessage):
         # Use the chat message as the prompt for AI response
         ai_response = call_openai_with_retry(chat_input.message)
         return {"reply": ai_response}
-    except openai.error.OpenAIError as e:
-        logger.error(f"OpenAI API error: {str(e)}")
-        return {"error": "AI 服务暂时不可用，请稍后再试。"}
     except Exception as e:
-        logger.error(f"Unexpected error: {str(e)}")
+        logger.error(f"OpenAI API error: {str(e)}")
         return {"error": "AI 服务暂时不可用，请稍后再试。"}
 
 # Helper function to fetch and update news
