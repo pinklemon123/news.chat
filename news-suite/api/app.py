@@ -33,10 +33,25 @@ def health():
     return {"ok": True}
 
 NEWS_SOURCES = [
-    "https://feeds.bbci.co.uk/news/world/rss.xml",  # BBC World News
-    "http://rss.cnn.com/rss/edition_world.rss",    # CNN World News
-    "https://www.scmp.com/rss/91/feed"             # South China Morning Post
+    "https://feeds.bbci.co.uk/news/world/rss.xml",          # BBC World News
+    "http://rss.cnn.com/rss/edition_world.rss",            # CNN World News
+    "https://www.scmp.com/rss/91/feed",                    # South China Morning Post
+    "https://feeds.bbci.co.uk/news/technology/rss.xml",    # BBC Tech News
+    "https://feeds.bbci.co.uk/news/business/rss.xml",      # BBC Business News
+    "http://rss.cnn.com/rss/edition_technology.rss",       # CNN Tech News
+    "http://rss.cnn.com/rss/money_news_international.rss", # CNN Business News
+    "https://www.scmp.com/rss/4/feed",                     # SCMP China News
+    "https://www.scmp.com/rss/92/feed"                     # SCMP Asia News
 ]
+
+# 新闻类别
+NEWS_CATEGORIES = {
+    "world": ["bbc", "cnn", "scmp"],
+    "technology": ["bbc", "cnn"],
+    "business": ["bbc", "cnn"],
+    "china": ["scmp"],
+    "asia": ["scmp"]
+}
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -113,28 +128,68 @@ else:
     logger.warning("OPENAI_API_KEY is not set. AI features will not work.")
 
 # Helper function to fetch news
-def fetch_news(source):
+def fetch_news(source, limit=10):  # 增加每个源的新闻数量
     try:
         feed = feedparser.parse(source)
         if feed.entries:
-            return [
-                {"title": entry.title, "link": entry.link}
-                for entry in feed.entries[:5]  # Limit to 5 entries per source
-            ]
+            news_entries = []
+            for entry in feed.entries[:limit]:
+                news_item = {
+                    "title": entry.title,
+                    "link": entry.link,
+                    "source": source.split('/')[2],  # 提取源网站域名
+                    "category": next((cat for cat, sources in NEWS_CATEGORIES.items() 
+                                   if any(src in source.lower() for src in sources)), "general"),
+                    "published": entry.get('published', 'N/A'),
+                    "summary": entry.get('summary', 'No summary available')
+                }
+                # 尝试提取图片
+                if hasattr(entry, 'media_content'):
+                    news_item['image'] = entry.media_content[0]['url']
+                elif hasattr(entry, 'links') and len(entry.links) > 1:
+                    news_item['image'] = next((link.href for link in entry.links if 'image' in link.type), None)
+                
+                news_entries.append(news_item)
+            return news_entries
         else:
-            # If no internet access or feed fails, return varied mock data
+            # 如果无法获取新闻，返回更丰富的模拟数据
             logger.warning(f"No entries found for {source}, using varied mock data")
-            return generate_varied_mock_news(source, "regular", 3)
+            return generate_varied_mock_news(source, "regular", limit)
     except Exception as e:
         logger.error(f"Error fetching from {source}: {str(e)}")
-        return [{"error": "Failed to fetch news from source"}]
+        return [{"error": f"Failed to fetch news from {source}", "source": source.split('/')[2]}]
 
 @app.get("/search")
-def search_news():
+async def search_news(category: str = None, source: str = None, limit: int = 10):
     news_items = []
-    for source in NEWS_SOURCES:
-        news_items.extend(fetch_news(source))
-    return {"results": news_items}
+    filtered_sources = NEWS_SOURCES
+
+    # 按类别过滤
+    if category and category in NEWS_CATEGORIES:
+        filtered_sources = [src for src in NEWS_SOURCES 
+                          if any(s in src.lower() for s in NEWS_CATEGORIES[category])]
+    
+    # 按源过滤
+    if source:
+        filtered_sources = [src for src in filtered_sources if source.lower() in src.lower()]
+
+    # 获取新闻
+    for source in filtered_sources:
+        source_news = fetch_news(source, limit)
+        news_items.extend(source_news)
+
+    # 按时间排序（如果有发布时间）
+    try:
+        news_items.sort(key=lambda x: x.get('published', ''), reverse=True)
+    except Exception as e:
+        logger.warning(f"Failed to sort news items by date: {str(e)}")
+
+    return {
+        "results": news_items[:limit],
+        "total": len(news_items),
+        "category": category,
+        "source": source
+    }
 
 @app.get("/refresh-news")
 def refresh_news():
