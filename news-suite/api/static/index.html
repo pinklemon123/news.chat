@@ -154,6 +154,11 @@
             });
         }
 
+        async function searchNews() {
+            // Same as loadNews for now, but could be enhanced for search functionality
+            await loadNews();
+        }
+
         async function generateSummary() {
             const response = await fetch('/generate', {
                 method: 'POST',
@@ -171,17 +176,53 @@
 
         async function refreshNews() {
             try {
-                const response = await fetch('/update-news');
+                // Show loading feedback
+                const refreshButton = document.querySelector('button[onclick="refreshNews()"]');
+                const originalText = refreshButton.textContent;
+                refreshButton.textContent = '更新中...';
+                refreshButton.disabled = true;
+                
+                // Use the new refresh endpoint that provides varied news
+                const response = await fetch('/refresh-news');
                 const data = await response.json();
                 
-                if (data.status === 'success') {
-                    await loadNews(); // Reload the news display
-                    alert(`新闻更新成功！获取了 ${data.articles_count} 条新闻${data.error_count > 0 ? `，${data.error_count} 个源出现错误` : ''}。`);
+                if (data.results && data.results.length > 0) {
+                    // Update the news display directly with refreshed content
+                    const newsContainer = document.getElementById('news-container');
+                    newsContainer.innerHTML = '';
+                    
+                    data.results.forEach(news => {
+                        const newsItem = document.createElement('div');
+                        newsItem.className = 'news-item';
+
+                        const title = document.createElement('h3');
+                        title.innerHTML = `<a href="${news.link}" target="_blank">${news.title}</a>`;
+
+                        const image = document.createElement('img');
+                        image.src = news.image || "https://via.placeholder.com/300";
+                        image.style.width = '100%';
+                        image.loading = 'lazy';
+
+                        newsItem.appendChild(image);
+                        newsItem.appendChild(title);
+                        newsContainer.appendChild(newsItem);
+                    });
+                    
+                    alert(`新闻刷新成功！获取了 ${data.results.length} 条最新新闻。`);
                 } else {
-                    alert('新闻更新失败：' + data.message);
+                    alert('新闻刷新失败：未获取到新闻数据');
                 }
+                
+                // Restore button state
+                refreshButton.textContent = originalText;
+                refreshButton.disabled = false;
+                
             } catch (error) {
-                alert('新闻更新失败：网络错误');
+                alert('新闻刷新失败：网络错误');
+                // Restore button state on error
+                const refreshButton = document.querySelector('button[onclick="refreshNews()"]');
+                refreshButton.textContent = '更新新闻';
+                refreshButton.disabled = false;
             }
         }
 

@@ -9,6 +9,8 @@ import requests
 import feedparser
 import logging
 import time
+import random
+from datetime import datetime
 
 app = FastAPI()
 app.add_middleware(
@@ -40,6 +42,62 @@ NEWS_SOURCES = [
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Mock news content for variety
+MOCK_NEWS_TEMPLATES = [
+    {
+        "titles": [
+            "科技公司发布新产品引发关注",
+            "经济数据显示市场复苏迹象", 
+            "国际会议讨论环境保护议题",
+            "体育赛事精彩瞬间回顾",
+            "文化艺术节成功举办",
+            "教育改革新政策出台",
+            "医疗技术取得重大突破",
+            "交通基础设施建设进展",
+            "可持续发展项目启动",
+            "社会公益活动广受好评"
+        ],
+        "summaries": [
+            "最新报道显示相关发展取得重要进展。",
+            "专家分析认为这一趋势值得关注。",
+            "各方反应积极，预期效果良好。",
+            "详细数据和分析报告即将发布。", 
+            "相关部门表示将持续跟进此事。",
+            "民众对此表示高度关注和支持。",
+            "业内人士对前景表示乐观。",
+            "国际社会对此给予积极评价。"
+        ]
+    }
+]
+
+def generate_varied_mock_news(source, news_type="regular", count=3):
+    """Generate varied mock news for demonstration"""
+    source_name = source.split('//')[-1].split('/')[0] if '//' in source else source
+    current_time = datetime.now()
+    timestamp = current_time.strftime("%H:%M")
+    
+    templates = MOCK_NEWS_TEMPLATES[0]
+    titles = random.sample(templates["titles"], min(count, len(templates["titles"])))
+    
+    mock_news = []
+    for i, title in enumerate(titles):
+        suffix = "更新" if news_type == "update" else "报道"
+        full_title = f"{title} - {source_name} {timestamp} {suffix}{i+1}"
+        summary = random.choice(templates["summaries"])
+        
+        news_item = {
+            "title": full_title,
+            "link": f"{source}#{news_type}{i+1}_{int(current_time.timestamp())}",
+        }
+        
+        if news_type == "update":
+            news_item["summary"] = summary
+            
+        mock_news.append(news_item)
+    
+    return mock_news
+logger = logging.getLogger(__name__)
+
 AI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 # Initialize OpenAI client
@@ -64,22 +122,38 @@ def fetch_news(source):
                 for entry in feed.entries[:5]  # Limit to 5 entries per source
             ]
         else:
-            # If no internet access or feed fails, return mock data for demonstration
-            logger.warning(f"No entries found for {source}, using mock data")
-            mock_data = [
-                {"title": f"Mock News from {source.split('//')[-1].split('/')[0]} - 示例新闻1", "link": f"{source}#1"},
-                {"title": f"Mock News from {source.split('//')[-1].split('/')[0]} - 示例新闻2", "link": f"{source}#2"},
-            ]
-            return mock_data
+            # If no internet access or feed fails, return varied mock data
+            logger.warning(f"No entries found for {source}, using varied mock data")
+            return generate_varied_mock_news(source, "regular", 3)
     except Exception as e:
         logger.error(f"Error fetching from {source}: {str(e)}")
-        return [{"error": f"Error fetching from {source}: {str(e)}"}]
+        return [{"error": "Failed to fetch news from source"}]
 
 @app.get("/search")
 def search_news():
     news_items = []
     for source in NEWS_SOURCES:
         news_items.extend(fetch_news(source))
+    return {"results": news_items}
+
+@app.get("/refresh-news")
+def refresh_news():
+    """Endpoint specifically for refreshing news display with new content"""
+    news_items = []
+    
+    for source in NEWS_SOURCES:
+        # Use the update news function to get varied content
+        source_news = fetch_and_update_news(source)
+        # Convert update format to display format
+        for item in source_news:
+            if "error" not in item:
+                display_item = {
+                    "title": item["title"],
+                    "link": item["link"]
+                }
+                news_items.append(display_item)
+    
+    logger.info(f"Refreshed news with {len(news_items)} articles")
     return {"results": news_items}
 
 # Helper function to call OpenAI API with retry logic
@@ -150,24 +224,12 @@ def fetch_and_update_news(source):
             logger.info(f"Fetched {len(news_entries)} entries from {source}")
             return news_entries
         else:
-            # If no internet access or feed fails, return mock data for demonstration
-            logger.warning(f"No entries found for {source}, using mock data")
-            mock_data = [
-                {
-                    "title": f"Mock News from {source.split('//')[-1].split('/')[0]} - 最新新闻更新1", 
-                    "link": f"{source}#update1",
-                    "summary": "这是一个模拟新闻摘要，用于演示新闻更新功能。"
-                },
-                {
-                    "title": f"Mock News from {source.split('//')[-1].split('/')[0]} - 最新新闻更新2", 
-                    "link": f"{source}#update2",
-                    "summary": "这是另一个模拟新闻摘要，显示更新功能正常工作。"
-                },
-            ]
-            return mock_data
+            # If no internet access or feed fails, return varied mock data for updates
+            logger.warning(f"No entries found for {source}, using varied mock update data")
+            return generate_varied_mock_news(source, "update", 3)
     except Exception as e:
         logger.error(f"Error fetching from {source}: {str(e)}")
-        return [{"error": f"Error fetching from {source}: {str(e)}"}]
+        return [{"error": "Failed to fetch news from source"}]
 
 @app.get("/update-news")
 def update_news():
